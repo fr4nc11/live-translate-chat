@@ -1,11 +1,11 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
-import { v2 as Translate } from '@google-cloud/translate';
+import { Translate } from '@google-cloud/translate';   // ← unicul import
 
 const fastify = Fastify({ logger: true });
 await fastify.register(cors);
 
-const translateClient = new Translate();
+const translateClient = new Translate();              // ← o singură instanță
 
 fastify.post('/translate', async (req, reply) => {
   const { text = '', src = 'ro', tgt = 'en' } = req.body ?? {};
