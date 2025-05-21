@@ -1,42 +1,24 @@
-/* apps/api/index.mjs
-   Back-end Live-Translate-Chat
-   — Fastify v4  •  Google Cloud Translate v2
-*/
-
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
-
-// 📦 @google-cloud/translate este CommonJS → import default-ul
+import { promises as fs } from 'fs';
+import { tmpdir } from 'os';
+import path from 'path';
 import translatePkg from '@google-cloud/translate';
-// extragem clasa Translate din pachet
-const { v2 } = translatePkg;           // namespace v2
-const translateClient = new v2.Translate();   // client autenticat via JSON env
+const { v2 } = translatePkg;
+
+// 1. scriem cheia pe disc dacă vine din env
+if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+  const credPath = path.join(tmpdir(), 'gcp-translate-key.json');
+  await fs.writeFile(credPath, process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+  process.env.GOOGLE_APPLICATION_CREDENTIALS = credPath;
+}
 
 const fastify = Fastify({ logger: true });
 await fastify.register(cors);
 
-/* POST /translate
-   body: { text, src, tgt }
-   return: { translated }
-*/
-fastify.post('/translate', async (req, reply) => {
-  const { text = '', src = 'ro', tgt = 'en' } = req.body ?? {};
+const translateClient = new v2.Translate();
 
-  try {
-    const [result] = await translateClient.translate(text, { from: src, to: tgt });
-    return { translated: result };
-  } catch (err) {
-    req.log.error(err);
-    reply.code(500);
-    return { error: 'translate_failed' };
-  }
-});
+fastify.post('/translate', async (req, reply) => { /* …same body… */ });
 
-// ▶️  start server
-const port = Number(process.env.PORT) || 8080;      // Railway injectează PORT
-fastify
-  .listen({ port, host: '0.0.0.0' })
-  .catch(err => {
-    fastify.log.error(err);
-    process.exit(1);
-  });
+const port = Number(process.env.PORT) || 8080;
+fastify.listen({ port, host: '0.0.0.0' }).catch(err => { fastify.log.error(err); process.exit(1); });
